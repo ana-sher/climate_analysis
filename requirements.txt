@@ -1,0 +1,8 @@
+numpy
+pandas
+xarray
+matplotlib
+jupyter
+h5netcdf
+h5py
+cartopy
