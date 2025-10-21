@@ -1,6 +1,6 @@
 from typing import Optional
 from data.load import read_raw_tempanomalies, read_raw_co2
-from visualization.plotting import plot_analysis
+from visualization.plotting import plot_analysis, plot_temp_stats
 from utils.location import get_location
 from datetime import datetime, timezone
 import argparse
@@ -19,7 +19,7 @@ def main(year_range: int = 1, lon: Optional[float] = None, lat: Optional[float] 
     temp_anomalies_df = read_raw_tempanomalies(year_from, lat_min, lat_max, lon_min, lon_max)
     co2_df = read_raw_co2(year_from, lat_min, lat_max, lon_min, lon_max)
 
-    plot_analysis(temp_anomalies_df, co2_df)
+    plot_temp_stats(temp_anomalies_df)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,11 +1,20 @@
 
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from typing import cast
+from typing import Optional, cast
+from sklearn.cluster import KMeans
 import pandas as pd
+import numpy as np
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.mpl.geoaxes as geoaxes
 from cartopy.feature.nightshade import Nightshade
+
+from config import PLOTS_DIR
+
+
+def _save_plot(fig: Figure, name: str):
+    fig.savefig(PLOTS_DIR / f"{name}.png", dpi=300, bbox_inches='tight')
 
 
 def plot_analysis(temp_anomalies_df: pd.DataFrame, co2_df: pd.DataFrame):
@@ -30,3 +39,35 @@ def plot_analysis(temp_anomalies_df: pd.DataFrame, co2_df: pd.DataFrame):
     plt.colorbar(sc, ax=ax)
     plt.title(f"Temperature anomaly on {df_step['time'].iloc[0].date()}")
     plt.show()
+
+
+def plot_temp_stats(df: pd.DataFrame, n_clusters: int = 5, save: bool = True):
+    coords = df[['lat', 'lon']]
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, max_iter=15)
+    df['cluster'] = kmeans.fit_predict(coords)
+
+    merged = df.groupby(['cluster', 'time'], as_index=False).agg({
+        'lat': 'mean',
+        'lon': 'mean',
+        'tempanomaly': 'mean',
+    })
+    merged[['lat', 'lon']] = merged[['lat', 'lon']].astype(float).round(2)
+
+    for key, values in merged.groupby(['lat', 'lon']):
+        a, b = key
+        plt.plot(values['time'], values['tempanomaly'], label=f'{a}, {b}')
+
+    plt.title('Temperature anomalies during same timeframe by clustered location')
+    plt.ylabel('Temperature anomaly (K)')
+    plt.xlabel('Date')
+    plt.legend()
+    fig = plt.gcf()
+    fig.set_size_inches(10, 4)
+    if save:
+        _save_plot(fig, 'tempanomalies')
+    plt.show()
+    plt.close(fig) 
+
+
+def plot_co2_stats(df: pd.DataFrame, n_clusters: int = 5):
+    pass

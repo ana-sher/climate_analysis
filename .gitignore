@@ -48,4 +48,4 @@ data/processed/
 
 # Sensitive files
 .envrc
-.env.*   # separate env files
+.env.*

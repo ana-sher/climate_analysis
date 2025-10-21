@@ -6,3 +6,4 @@ jupyter
 h5netcdf
 h5py
 cartopy
+scikit-learn
