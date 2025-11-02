@@ -49,3 +49,6 @@ data/processed/
 # Sensitive files
 .envrc
 .env.*
+.env
+
+mlruns/

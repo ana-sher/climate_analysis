@@ -9,6 +9,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.mpl.geoaxes as geoaxes
 from cartopy.feature.nightshade import Nightshade
+import matplotlib.colors as mcolors
 
 from config import PLOTS_DIR
 
@@ -70,4 +71,24 @@ def plot_temp_stats(df: pd.DataFrame, n_clusters: int = 5, save: bool = True):
 
 
 def plot_co2_stats(df: pd.DataFrame, n_clusters: int = 5):
-    pass
+    merged = df.groupby(['cluster'], as_index=False).agg({
+    'lat': 'mean',
+    'lon': 'mean',
+    'xco2': 'mean',
+    })
+    merged[['lat', 'lon']] = merged[['lat', 'lon']].astype(float).round(2)
+    
+    baseline = 420
+    min = merged['xco2'].min() if merged['xco2'].min() < baseline else baseline - 1
+    norm = mcolors.TwoSlopeNorm(
+        vmin=min, 
+        vcenter=baseline, 
+        vmax=merged['xco2'].max()
+    )
+
+    fig = plt.figure(figsize=(12,6))
+    ax = cast(geoaxes.GeoAxes, plt.axes(projection=ccrs.PlateCarree()))
+    ax.set_extent([
+        merged['lon'].min() - 2, merged['lon'].max() + 2,
+        merged['lat'].min() - 2, merged['lat'].max() + 2
+    ], crs=ccrs.PlateCarree())
