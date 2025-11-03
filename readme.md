@@ -15,19 +15,19 @@ Several visualizations are generated from OCO2 CO₂ measurements:
 <div style="text-align: center;">
   <img src="outputs/plots/co2_sparse_heatmap.png" alt="CO₂ concentration heatmap" width="600"/>
   <p><b>Interpolated CO₂ Heatmap from Sparse Measurements</b><br/>
-  Shows interpolated XCO₂ levels with black circles indicating actual satellite measurement locations.</p>
+  Shows interpolated XCO₂ levels with circles indicating actual satellite measurement locations.</p>
 </div>
 
-<div style="display: flex; justify-content: space-between;">
-  <div style="flex: 1; text-align: center;">
-    <img src="outputs/plots/co2_highest.png" alt="Highest CO₂ areas" width="300"/>
-    <p><b>Areas with Highest CO₂ Concentrations</b></p>
-  </div>
-  <div style="flex: 1; text-align: center;">
-    <img src="outputs/plots/co2_lowest.png" alt="Lowest CO₂ areas" width="300"/>
-    <p><b>Areas with Lowest CO₂ Concentrations</b></p>
-  </div>
+<div style="text-align: center;">
+  <img src="outputs/plots/co2_readings.png" alt="XCO₂ readings" width="600"/>
+  <p><b>XCO₂ Readings</b><br/>
+  Shows XCO₂ levels indicating actual satellite measurement locations.</p>
 </div>
+
+| Areas with Highest CO₂ Concentrations | Areas with Lowest CO₂ Concentrations |
+|:-----------------------------------:|:-----------------------------------:|
+| ![Highest CO₂ areas](outputs/plots/co2_highest.png) | ![Lowest CO₂ areas](outputs/plots/co2_lowest.png) |
+| **Areas with Highest CO₂ Concentrations (>425 ppm)** | **Areas with Lowest CO₂ Concentrations (<417 ppm)** |
 
 XCO₂ represents the column-averaged CO₂ concentration from ground to upper atmosphere (~60km), measured in parts per million (ppm).
 
