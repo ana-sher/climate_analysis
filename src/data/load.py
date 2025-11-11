@@ -8,15 +8,15 @@ from typing import Literal, Optional
 import h5py
 import earthaccess
 
-from config import DATA_DIR, TEMPANOMALIES_CSV, CO2_CSV
+from config import DATA_DIR, TEMPANOMALIES, CO2
 
 
 def load_co2() -> pd.DataFrame:
-    return _load_csv(CO2_CSV)
+    return load_csv(CO2)
 
 
 def load_tempanomalies() -> pd.DataFrame:
-    return _load_csv(TEMPANOMALIES_CSV)
+    return load_csv(TEMPANOMALIES)
 
 
 def read_raw_tempanomalies(
@@ -154,12 +154,16 @@ def read_remote_co2(
     return xco2_df
 
 
-def _load_csv(filename: str) -> pd.DataFrame:
-    path = DATA_DIR / "processed" / filename
+def load_csv(filename: str) -> pd.DataFrame:
+    path = DATA_DIR / "processed" / f'{filename}.csv'
     return pd.read_csv(path)
 
+def load_parquet(filename: str) -> pd.DataFrame:
+    path = DATA_DIR / "processed" / f'{filename}.parquet'
+    return pd.read_parquet(path)
 
-def _load_netcdf(filename: str, engine: Optional[str] = None) -> xr.Dataset:
+
+def load_netcdf(filename: str, engine: Optional[str] = None) -> xr.Dataset:
     path = DATA_DIR / "raw" / filename
     return xr.open_dataset(path, engine=engine)
 
@@ -175,7 +179,7 @@ def _get_raw_filenames_dataset(
     files = list(Path(path).glob(f"{prefix}*.{file_format}"))
     if not files:
         raise FileNotFoundError("No files found matching the pattern")
-    datasets = [_load_netcdf(file.name, engine) for file in files]
+    datasets = [load_netcdf(file.name, engine) for file in files]
     if len(datasets) == 1:
         return datasets[0]
     combined = xr.concat(datasets, dim=concat_dim)
