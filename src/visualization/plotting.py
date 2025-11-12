@@ -44,7 +44,7 @@ def plot_analysis(temp_anomalies_df: pd.DataFrame, co2_df: pd.DataFrame):
 
 def plot_temp_stats(df: pd.DataFrame, n_clusters: int = 5, save: bool = True):
     coords = df[['lat', 'lon']]
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, max_iter=15)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, max_iter=105)
     df['cluster'] = kmeans.fit_predict(coords)
 
     merged = df.groupby(['cluster', 'time'], as_index=False).agg({
