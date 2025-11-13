@@ -1,6 +1,6 @@
 # Climate Analysis Project
 
-Python project for analyzing atmospheric CO₂ and surface temperature anomalies. It reads raw and processed datasets, creates combined dataframes, and generates visualizations for climate research and exploration.
+Python project for analyzing atmospheric CO₂ and surface temperature anomalies, predicting future statistic. It reads raw and processed datasets, creates combined dataframes, generates visualizations for climate research and exploration, trains a **Gradient Boosting regression** to predict future temperature anomalies.
 
 ## Data Sources
 
@@ -9,6 +9,25 @@ Python project for analyzing atmospheric CO₂ and surface temperature anomalies
 [MODIS Land Cover Type (MCD12Q1)](https://www.earthdata.nasa.gov/data/catalog/lpcloud-mcd12q1-061) : Global land cover types at yearly intervals with geospatial metadata using supervised classifications of MODIS Terra and Aqua reflectance data.
 
 [GISTEMP, NASA](http://data.giss.nasa.gov/gistemp/) : Surface temperature anomalies with temporal and geospatial metadata. Values are expressed in K.
+
+## Machine Learning — Gradient Boosting Regression
+
+A Gradient Boosting regression model was trained to predict future surface temperature anomalies using historical temperature anomalies, column‑averaged CO₂ (XCO₂) levels, and MODIS land cover types as input features. The analysis and model-building are implemented in the notebook `ml_data_analysis.ipynb` and use `scikit‑learn` for modeling and evaluation.
+
+Model experiments, parameters, metrics, and artifacts are tracked with MLflow and can be inspected via the MLflow UI.
+
+- Notebook: `notebooks/ml_data_analysis.ipynb`  
+- Inputs: historical anomalies, XCO₂, land cover features
+- Model: `GradientBoostingRegressor` (`scikit-learn`) with hyperparameter search and validation  
+- Tracking: MLflow (default store: `./notebooks/mlruns`)  
+- To view results: run `mlflow ui --backend-store-uri ./notebooks/mlruns --port 5000` and open http://localhost:5000
+
+Trained model artifacts and exported model files are saved with the experiment artifacts (see MLflow UI for locations and detailed run metadata).
+
+| Historical Temperature Anomalies | Predicted Temperature Anomalies | Historical & Predicted |
+|:-----------------------------------:|:-----------------------------------:|:-----------------------------------:|
+| ![Historical Temperature Anomalies](outputs/plots/last_year_tempanom.png) | ![Predicted Temperature Anomalies](outputs/plots/predicted_tempanomal.png) | ![Predicted Temperature Anomalies](outputs/plots/tempanomal_predicted_historical.png) |
+| Timeframe: 12 months | Timeframe: 12 months (historical anomalies, XCO₂, land cover features) | More global overview. Timeframe: 44 months |
 
 ## Visualizations
 
