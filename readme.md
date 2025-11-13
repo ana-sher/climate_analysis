@@ -31,6 +31,15 @@ Trained model artifacts and exported model files are saved with the experiment a
 
 ## Visualizations
 
+### MODIS Land Cover Type
+
+Data exploration notebooks in `land_type_exploration/` download and process MODIS `hdf` files (2024-2025 satellite readings). Processed data optionally exported to `data/processed/land_cover_types.parquet` after cell execution.
+
+| Land Cover Types | Land Cover Types Interactive Map |
+|:-----------------------------------:|:-----------------------------------:|
+| <img src="outputs/plots/land_types.png" alt="Land Cover Types" width="1200"/> | ![Land Cover Types Interactive Map](outputs/plots/land_cover_interactive.jpg) |
+| Static land cover projection with `matplotlib`, `cartopy`, `geopandas` | Detailed exploration of land cover types using `lonboard`, `geopandas` |
+
 ### OCO2 CO₂ measurements
 
 Several visualizations are generated from OCO2 CO₂ measurements:
@@ -49,15 +58,6 @@ XCO₂ represents the column-averaged CO₂ concentration from ground to upper a
 
 Data exploration notebooks in `co2_data_exploration/` download and process NASA L2 `nc4` files (2024-2025 satellite readings) with configurable data volume limits.
 Processed data optionally exported to `data/processed/co2.parquet` after cell execution.
-
-### MODIS Land Cover Type
-
-Data exploration notebooks in `land_type_exploration/` download and process MODIS `hdf` files (2024-2025 satellite readings). Processed data optionally exported to `data/processed/land_cover_types.parquet` after cell execution.
-
-| Land Cover Types | Land Cover Types Interactive Map |
-|:-----------------------------------:|:-----------------------------------:|
-| <img src="outputs/plots/land_types.png" alt="Land Cover Types" width="1200"/> | ![Land Cover Types Interactive Map](outputs/plots/land_cover_interactive.jpg) |
-| Static land cover projection with `matplotlib`, `cartopy`, `geopandas` | Detailed exploration of land cover types using `lonboard`, `geopandas` |
 
 ### Temperature anomalies by region
 
@@ -109,3 +109,8 @@ Start JupyterLab with the project config:
 
 - From project root:
   - `jupyter lab --config=.jupyter/jupyter_lab_config.py`
+
+### Run MLflow UI
+
+- From project root:
+  - `mlflow ui --backend-store-uri ./notebooks/mlruns --port 5000`
