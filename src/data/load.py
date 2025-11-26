@@ -23,20 +23,20 @@ def read_raw_tempanomalies(
     year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
 ) -> pd.DataFrame:
     """
-        Reads raw GISTEMP temperature anomalies data from local NetCDF files.
-        Data source structure processed: GISTEMP, NASA http://data.giss.nasa.gov/gistemp/
-        Structure:
-            Dims: time, nv, lat, lon
-            Vars: time_bnds, tempanomaly (K)
+    Reads raw GISTEMP temperature anomalies data from local NetCDF files.
+    Data source structure processed: GISTEMP, NASA http://data.giss.nasa.gov/gistemp/
+    Structure:
+        Dims: time, nv, lat, lon
+        Vars: time_bnds, tempanomaly (K)
 
-        Parameters:
-            year_from (int): Year from which to read data
-            lat_min (float): Minimum latitude
-            lat_max (float): Maximum latitude
-            lon_min (float): Minimum longitude
-            lon_max (float): Maximum longitude
-        Returns:
-            pd.DataFrame: DataFrame containing tempanomaly (K) by lat, lon, time
+    Parameters:
+        year_from (int): Year from which to read data
+        lat_min (float): Minimum latitude
+        lat_max (float): Maximum latitude
+        lon_min (float): Minimum longitude
+        lon_max (float): Maximum longitude
+    Returns:
+        pd.DataFrame: DataFrame containing tempanomaly (K) by lat, lon, time
     """
     temp_anomalies_ds = _get_raw_filenames_dataset("nc", prefix="gistemp")
 
@@ -57,21 +57,21 @@ def read_raw_co2(
     year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
 ) -> pd.DataFrame:
     """
-        Reads raw OCO-2 CO2 data from local HDF5 files.
-        Data source structure processed: GES DISC, NASA L2 data https://disc.gsfc.nasa.gov/datasets/OCO2_L2_Standard_11r/summary
-        Structure:
-            Dims: retrieval (artificially created)
-            Vars: xco2 (ppm)
-            Coords: time, lat, lon
+    Reads raw OCO-2 CO2 data from local HDF5 files.
+    Data source structure processed: GES DISC, NASA L2 data https://disc.gsfc.nasa.gov/datasets/OCO2_L2_Standard_11r/summary
+    Structure:
+        Dims: retrieval (artificially created)
+        Vars: xco2 (ppm)
+        Coords: time, lat, lon
 
-        Parameters:
-            year_from (int): Year from which to read data
-            lat_min (float): Minimum latitude
-            lat_max (float): Maximum latitude
-            lon_min (float): Minimum longitude
-            lon_max (float): Maximum longitude
-        Returns:
-            pd.DataFrame: DataFrame containing xco2 (ppm) by lat, lon, time
+    Parameters:
+        year_from (int): Year from which to read data
+        lat_min (float): Minimum latitude
+        lat_max (float): Maximum latitude
+        lon_min (float): Minimum longitude
+        lon_max (float): Maximum longitude
+    Returns:
+        pd.DataFrame: DataFrame containing xco2 (ppm) by lat, lon, time
     """
     path = DATA_DIR / "raw"
     files = list(Path(path).glob(f"oco*.h5"))
@@ -103,39 +103,56 @@ def read_raw_co2(
 
 
 def read_remote_co2(
-    year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float, limit: int = 25
+    year_from: int,
+    lat_min: float,
+    lat_max: float,
+    lon_min: float,
+    lon_max: float,
+    limit: int = 25,
+    locally: bool = True,
 ) -> pd.DataFrame:
     """
-        Reads remote OCO-2 CO2 data using Earthdata Access.
-        Data source structure processed: GES DISC, NASA L2 data https://disc.gsfc.nasa.gov/datasets/OCO2_L2_Lite_FP_11.2r/summary
-        Structure:
-            Dims: sounding_id
-            Vars: xco2 (ppm), xco2_quality_flag
-            Coords: time, latitude, longitude
+    Reads remote OCO-2 CO2 data using Earthdata Access.
+    Data source structure processed: GES DISC, NASA L2 data https://disc.gsfc.nasa.gov/datasets/OCO2_L2_Lite_FP_11.2r/summary
+    Structure:
+        Dims: sounding_id
+        Vars: xco2 (ppm), xco2_quality_flag
+        Coords: time, latitude, longitude
 
-        Parameters:
-            year_from (int): Year from which to read data
-            lat_min (float): Minimum latitude
-            lat_max (float): Maximum latitude
-            lon_min (float): Minimum longitude
-            lon_max (float): Maximum longitude
-            limit (int): Maximum number of files to download
-        Returns:
-            pd.DataFrame: DataFrame containing xco2 (ppm) by lat, lon, time
+    Parameters:
+        year_from (int): Year from which to read data
+        lat_min (float): Minimum latitude
+        lat_max (float): Maximum latitude
+        lon_min (float): Minimum longitude
+        lon_max (float): Maximum longitude
+        limit (int): Maximum number of files to download
+    Returns:
+        pd.DataFrame: DataFrame containing xco2 (ppm) by lat, lon, time
     """
     path = DATA_DIR / "raw"
     year_now = datetime.now().year
-    auth = earthaccess.login()
+    earthaccess.login()
     results = earthaccess.search_data(
         short_name="OCO2_L2_Lite_FP",
         temporal=(f"{year_from}-01-01", f"{year_now}-01-02"),
         bounding_box=(lon_min, lat_min, lon_max, lat_max),
     )
     step = int(math.ceil(len(results) / limit))
-    files = earthaccess.download(results[::step], path)
+    if locally:
+        files = earthaccess.download(results[::step], path)
+        datasets = [
+            xr.open_dataset(path / file.name, engine="netcdf4") for file in files
+        ]
+        combined = xr.concat(datasets, dim="sounding_id", join="outer")
+    else:
+        # TODO: implement S3 download because earthaccess does not support saving reference files to S3 yet + outer join (explore)
+        combined = earthaccess.open_virtual_mfdataset(
+            results[::step],
+            reference_dir=f"s3://{settings.S3_BUCKET}/kerchunk_refs/",
+            reference_format="parquet",
+            xr_combine_nested_kwargs={"concat_dim": "sounding_id", "join": "outer"},
+        )
 
-    datasets = [xr.open_dataset(path / file.name, engine="netcdf4") for file in files]
-    combined = xr.concat(datasets, dim="sounding_id", join="outer")
     xco2_ds = combined.where(combined["xco2_quality_flag"] == 0, drop=True)
     xco2_ds = xco2_ds.where(xco2_ds["time"].dt.year >= year_from, drop=True)
     xco2_ds = xco2_ds.where(
@@ -155,11 +172,12 @@ def read_remote_co2(
 
 
 def load_csv(filename: str) -> pd.DataFrame:
-    path = DATA_DIR / "processed" / f'{filename}.csv'
+    path = DATA_DIR / "processed" / f"{filename}.csv"
     return pd.read_csv(path)
 
+
 def load_parquet(filename: str) -> pd.DataFrame:
-    path = DATA_DIR / "processed" / f'{filename}.parquet'
+    path = DATA_DIR / "processed" / f"{filename}.parquet"
     return pd.read_parquet(path)
 
 

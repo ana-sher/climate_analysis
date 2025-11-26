@@ -1,8 +1,11 @@
-FROM python:3.13
+FROM continuumio/miniconda3
 
-WORKDIR /app
-COPY ./requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+COPY environment.yml /tmp/environment.yml
+RUN conda env create -f /tmp/environment.yml
+
+SHELL ["conda", "run", "-n", "climate_analysis", "/bin/bash", "-c"]
+
 COPY . /app
+WORKDIR /app
 
-CMD ["fastapi", "run", "src/application/api.py", "--port", "80"]
+CMD ["fastapi", "run", "src/api.py", "--port", "80"]
