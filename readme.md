@@ -79,7 +79,28 @@ Prerequisites:
 - Create environment from file: `conda env create -f environment.yml`
 - Activate environment: `conda activate climate_analysis`
 
-### Run the CLI entrypoint (main.py)
+### Run API locally
+
+- From project root:
+  - `fastapi run src/api.py`
+  - server should start at `http://127.0.0.1:8000`
+
+This project allows local storage option or creating AWS infrastructure with S3 bucket through Terraform.
+This would allow much greater performance and possibility to run model more efficently.
+
+### Run Terraform
+
+You should have your `aws cli` credentials available locally (aws profile or key/secret pair as environment variables, see AWS docs for more details).
+`terraform` and `docker` should be installed as well. 
+*Alternatively you could fork repository and simply provide different
+`role-to-assume: arn:aws:iam::<AWS_ACCOUNT_ID>:role/<ROLE_NAME>` in `terraform.yml`, that way GitHub Actions will create infrastructure for you.*
+
+- From `infra` directory:
+  - `terraform init`
+  - `terraform plan` - ensure all planned services are ok for you
+  - `terraform apply` - docker image in AWS ECR will be created, S3, lambda and required permissions.
+
+### Run CLI entrypoint (main.py)
 
 Typical usage:
 

@@ -1,5 +1,7 @@
+from typing import Literal
+
 import pandas as pd
-from config import DATA_DIR, TEMPANOMALIES, CO2, settings
+from src.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
 def _write_csv(df: pd.DataFrame, filename: str, locally: bool = True):

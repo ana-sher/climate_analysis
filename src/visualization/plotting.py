@@ -11,7 +11,7 @@ import cartopy.mpl.geoaxes as geoaxes
 from cartopy.feature.nightshade import Nightshade
 import matplotlib.colors as mcolors
 
-from config import PLOTS_DIR
+from src.config import PLOTS_DIR
 
 
 def _save_plot(fig: Figure, name: str):
