@@ -6,9 +6,12 @@ on:
   #     - main
   release:
     types: [ published ]
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize]
 
 permissions:
+  pull-requests: write
+  issues: write
   id-token: write
   contents: read
 
@@ -53,7 +56,7 @@ jobs:
         run: terraform plan -no-color -input=false
         continue-on-error: true
 
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
