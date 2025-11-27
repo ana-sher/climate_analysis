@@ -52,3 +52,4 @@ data/processed/
 .env
 
 mlruns/
+/infra/.terraform/

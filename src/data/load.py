@@ -8,7 +8,7 @@ from typing import Literal, Optional
 import h5py
 import earthaccess
 
-from config import DATA_DIR, TEMPANOMALIES, CO2
+from src.config import DATA_DIR, TEMPANOMALIES, CO2
 
 
 def load_co2() -> pd.DataFrame:
