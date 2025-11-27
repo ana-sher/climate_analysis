@@ -132,6 +132,16 @@ resource "aws_iam_role" "app_role" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_ecr_pull" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 resource "aws_iam_role_policy_attachment" "app_role_policy_attach" {
   role       = aws_iam_role.app_role.name
   policy_arn = aws_iam_policy.policy.arn
