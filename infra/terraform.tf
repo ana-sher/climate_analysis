@@ -15,6 +15,10 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "3.6.1"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.7.1"
+    }
   }
 
   required_version = ">= 1.2"

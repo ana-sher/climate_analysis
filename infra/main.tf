@@ -95,6 +95,34 @@ module "aws_lambda_function" {
 
   image_uri    = module.docker_image.image_uri
   package_type = "Image"
+
+  create_role = false
+  lambda_role = aws_iam_role.app_role.arn
+
+  policies = [
+    aws_iam_role_policy_attachment.ecs_read.policy_arn,
+    aws_iam_role_policy_attachment.lambda_basic.policy_arn
+  ]
+}
+
+data "archive_file" "docker_context" {
+  type        = "zip"
+  source_dir  = "../src/"
+  output_path = "${path.module}/context.zip"
+}
+
+locals {
+  docker_tag = substr(data.archive_file.docker_context.output_base64sha256, 0, 12)
+}
+
+resource "null_resource" "cleanup_zip" {
+  triggers = {
+    docker_tag = local.docker_tag
+  }
+
+  provisioner "local-exec" {
+    command = "rm -f ${path.module}/context.zip"
+  }
 }
 
 module "docker_image" {
@@ -104,20 +132,27 @@ module "docker_image" {
   ecr_repo        = "climate-analysis"
 
   use_image_tag = true
-  image_tag     = "1.0"
+  image_tag     = local.docker_tag
 
   source_path = "../"
-}
 
-# resource "aws_api_gateway_integration" "app_api_gateway" {
-#   rest_api_id = ""
-#   resource_id = aws_lambda_function.example.id
-#   http_method = aws_api_gateway_method.example.http_method
-#
-#   integration_http_method = "POST"
-#   type                    = "AWS_PROXY"
-#   uri                     = aws_lambda_function.app_lambda.invoke_arn
-# }
+  ecr_repo_lifecycle_policy = jsonencode({
+    "rules" : [
+      {
+        "rulePriority" : 1,
+        "description" : "Keep only the last 1 image",
+        "selection" : {
+          "tagStatus" : "any",
+          "countType" : "imageCountMoreThan",
+          "countNumber" : 1
+        },
+        "action" : {
+          "type" : "expire"
+        }
+      }
+    ]
+  })
+}
 
 resource "aws_iam_role" "app_role" {
   name = "climate_app_role"
@@ -132,7 +167,7 @@ resource "aws_iam_role" "app_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_ecr_pull" {
+resource "aws_iam_role_policy_attachment" "ecs_read" {
   role       = aws_iam_role.app_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
@@ -151,6 +186,39 @@ resource "aws_iam_role_policy_attachment" "app_role_policy_attach" {
 
 # Create api gateway
 
+resource "aws_apigatewayv2_api" "api" {
+  name          = "climate-analysis-api"
+  protocol_type = "HTTP"
+}
+
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.aws_lambda_function.lambda_function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "root_route" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_stage" "default_stage" {
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
+resource "aws_lambda_permission" "apigw_invoke" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.aws_lambda_function.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+}
+
+###---------------------------------------------
 
 
 
