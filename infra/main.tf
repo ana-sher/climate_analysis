@@ -115,16 +115,6 @@ locals {
   docker_tag = substr(data.archive_file.docker_context.output_base64sha256, 0, 12)
 }
 
-resource "null_resource" "cleanup_zip" {
-  triggers = {
-    docker_tag = local.docker_tag
-  }
-
-  provisioner "local-exec" {
-    command = "rm -f ${path.module}/context.zip"
-  }
-}
-
 module "docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
@@ -152,6 +142,14 @@ module "docker_image" {
       }
     ]
   })
+}
+
+resource "null_resource" "cleanup_zip" {
+  depends_on = [module.docker_image.image_id]
+
+  provisioner "local-exec" {
+    command = "rm -f ${path.module}/context.zip"
+  }
 }
 
 resource "aws_iam_role" "app_role" {
