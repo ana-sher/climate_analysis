@@ -132,7 +132,7 @@ module "docker_image" {
   ecr_repo        = "climate-analysis"
 
   use_image_tag = true
-  image_tag = local.docker_tag
+  image_tag     = local.docker_tag
 
   source_path = "../"
 
