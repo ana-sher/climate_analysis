@@ -112,17 +112,7 @@ data "archive_file" "docker_context" {
 }
 
 locals {
-  docker_tag = substr(data.archive_file.docker_context.output_base64sha256, 0, 12)
-}
-
-resource "null_resource" "cleanup_zip" {
-  triggers = {
-    docker_tag = local.docker_tag
-  }
-
-  provisioner "local-exec" {
-    command = "rm -f ${path.module}/context.zip"
-  }
+  docker_tag = replace(substr(data.archive_file.docker_context.output_base64sha256, 0, 12), "/[^a-zA-Z0-9._-]/", "-")
 }
 
 module "docker_image" {
@@ -152,6 +142,14 @@ module "docker_image" {
       }
     ]
   })
+}
+
+resource "null_resource" "cleanup_zip" {
+  depends_on = [module.docker_image.image_id]
+
+  provisioner "local-exec" {
+    command = "rm -f ${path.module}/context.zip"
+  }
 }
 
 resource "aws_iam_role" "app_role" {
