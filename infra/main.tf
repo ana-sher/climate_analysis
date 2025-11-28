@@ -112,7 +112,7 @@ data "archive_file" "docker_context" {
 }
 
 locals {
-  docker_tag = substr(data.archive_file.docker_context.output_base64sha256, 0, 12)
+  docker_tag = substr(replace(data.archive_file.docker_context.output_base64sha256, "[^a-zA-Z0-9._-]", "-"), 0, 12)
 }
 
 module "docker_image" {
