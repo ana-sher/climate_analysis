@@ -1,11 +1,8 @@
-FROM continuumio/miniconda3
+FROM public.ecr.aws/lambda/python:3.11
 
-COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml
+COPY requirements-lambda.txt .
+RUN pip install --prefer-binary -r requirements-lambda.txt
 
-SHELL ["conda", "run", "-n", "climate_analysis", "/bin/bash", "-c"]
-
-COPY . /app
-WORKDIR /app
-
-CMD ["fastapi", "run", "src/api.py", "--port", "80"]
+COPY src /var/task/src
+ENV PYTHONPATH="/var/task/src"
+CMD ["api.handler"]

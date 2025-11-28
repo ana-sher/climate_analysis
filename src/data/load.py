@@ -8,7 +8,7 @@ from typing import Literal, Optional
 import h5py
 import earthaccess
 
-from src.config import DATA_DIR, TEMPANOMALIES, CO2
+from src.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
 def load_co2() -> pd.DataFrame:
@@ -120,12 +120,13 @@ def read_remote_co2(
         Coords: time, latitude, longitude
 
     Parameters:
-        year_from (int): Year from which to read data
-        lat_min (float): Minimum latitude
-        lat_max (float): Maximum latitude
-        lon_min (float): Minimum longitude
-        lon_max (float): Maximum longitude
-        limit (int): Maximum number of files to download
+        year_from: Year from which to read data
+        lat_min: Minimum latitude
+        lat_max: Maximum latitude
+        lon_min: Minimum longitude
+        lon_max: Maximum longitude
+        limit: Maximum number of files to download
+        locally: To save processing raw files locally or work with s3
     Returns:
         pd.DataFrame: DataFrame containing xco2 (ppm) by lat, lon, time
     """
