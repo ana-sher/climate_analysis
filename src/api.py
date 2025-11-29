@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from titiler.core.factory import TilerFactory
 
 from mangum import Mangum
 
@@ -22,6 +23,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+cog = TilerFactory()
+
+app.include_router(cog.router, tags=["Cloud Optimized GeoTIFF"])
 
 @app.get("/refresh-data")
 async def refresh_data(year_range: int = 4, loc_range: int = 5):
