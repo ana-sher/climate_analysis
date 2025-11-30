@@ -1,4 +1,5 @@
 from typing import Literal
+import zarr
 
 import pandas as pd
 from src.config import DATA_DIR, TEMPANOMALIES, CO2, settings
