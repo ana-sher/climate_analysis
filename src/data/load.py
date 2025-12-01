@@ -11,12 +11,12 @@ import earthaccess
 from src.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
-def load_co2() -> pd.DataFrame:
-    return load_csv(CO2)
+def load_co2(raw: bool = True) -> xr.Dataset:
+    return load_xr(CO2, engine="zarr", raw=raw)
 
 
-def load_tempanomalies() -> pd.DataFrame:
-    return load_csv(TEMPANOMALIES)
+def load_tempanomalies() -> xr.Dataset:
+    return load_xr(TEMPANOMALIES, engine="zarr")
 
 
 def read_raw_tempanomalies(
@@ -24,7 +24,7 @@ def read_raw_tempanomalies(
 ) -> pd.DataFrame:
     """
     Reads raw GISTEMP temperature anomalies data from local NetCDF files.
-    Data source structure processed: GISTEMP, NASA http://data.giss.nasa.gov/gistemp/
+    Data source structure processed: GISTEMP, NASA https://data.giss.nasa.gov/gistemp/
     Structure:
         Dims: time, nv, lat, lon
         Vars: time_bnds, tempanomaly (K)
@@ -182,23 +182,29 @@ def load_parquet(filename: str) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
-def load_netcdf(filename: str, engine: Optional[str] = None) -> xr.Dataset:
-    path = DATA_DIR / "raw" / filename
-    return xr.open_dataset(path, engine=engine)
+def load_xr(filename: str, engine: Optional[str] = None, raw: bool = True) -> xr.Dataset:
+    folder = "raw" if raw else "processed"
+    filename = filename if engine != "zarr" else f"{filename}.zarr"
+    path = DATA_DIR / folder / filename
+    return xr.open_dataset(path, engine=engine, chunks={})
 
 
 def _get_raw_filenames_dataset(
-    file_format: Literal["h5", "nc", "nc4"], concat_dim: str = "time", prefix: str = ""
+    file_format: Literal["h5", "nc", "nc4", "zarr"], concat_dim: str = "time", prefix: str = ""
 ) -> xr.Dataset:
     path = DATA_DIR / "raw"
     if file_format == "h5":
         engine = "h5netcdf"
     elif file_format == "nc" or file_format == "nc4":
         engine = "netcdf4"
+    elif file_format == "zarr":
+        engine = "zarr"
+    else:
+        raise ValueError(f"Unsupported file format: {file_format}")
     files = list(Path(path).glob(f"{prefix}*.{file_format}"))
     if not files:
         raise FileNotFoundError("No files found matching the pattern")
-    datasets = [load_netcdf(file.name, engine) for file in files]
+    datasets = [load_xr(file.name, engine) for file in files]
     if len(datasets) == 1:
         return datasets[0]
     combined = xr.concat(datasets, dim=concat_dim)
