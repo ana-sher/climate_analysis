@@ -43,8 +43,15 @@ spec:
                   name: earthdata-secret
                   key: EARTHDATA_PASSWORD
           volumeMounts:
-          - name: climate-analysis-storage
-            mountPath: /var/task/data
+            - name: climate-analysis-storage
+              mountPath: /var/task/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 
       volumes:
         - name: climate-analysis-storage
@@ -67,11 +74,11 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-    name: climate-analysis-pvc
+  name: climate-analysis-pvc
 spec:
-    storageClassName: manual
-    accessModes:
-        - ReadWriteOnce
-    resources:
-        requests:
-            storage: 5Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
