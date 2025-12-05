@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: climate-analysis-service
+spec:
+  selector:
+    app: climate-analysis
+  ports:
+    - protocol: "TCP"
+      port: 80
+      targetPort: 5000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: climate-analysis
+spec:
+  selector:
+    matchLabels:
+      app: climate-analysis
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: climate-analysis
+    spec:
+      containers:
+        - name: climate-analysis
+          image: climate-analysis:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: EARTHDATA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: earthdata-secret
+                  key: EARTHDATA_USERNAME
+            - name: EARTHDATA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: earthdata-secret
+                  key: EARTHDATA_PASSWORD
+          volumeMounts:
+          - name: climate-analysis-storage
+            mountPath: /var/task/data
+
+      volumes:
+        - name: climate-analysis-storage
+          persistentVolumeClaim:
+            claimName: climate-analysis-pvc
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: climate-analysis-pv
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/climate-analysis"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: climate-analysis-pvc
+spec:
+    storageClassName: manual
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 5Gi
