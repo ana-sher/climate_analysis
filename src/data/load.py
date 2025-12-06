@@ -8,7 +8,7 @@ from typing import Literal, Optional
 import h5py
 import earthaccess
 
-from src.config import DATA_DIR, TEMPANOMALIES, CO2, settings
+from core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
 def load_co2(raw: bool = True) -> xr.Dataset:
@@ -30,11 +30,11 @@ def read_raw_tempanomalies(
         Vars: time_bnds, tempanomaly (K)
 
     Parameters:
-        year_from (int): Year from which to read data
-        lat_min (float): Minimum latitude
-        lat_max (float): Maximum latitude
-        lon_min (float): Minimum longitude
-        lon_max (float): Maximum longitude
+        year_from: Year from which to read data
+        lat_min: Minimum latitude
+        lat_max: Maximum latitude
+        lon_min: Minimum longitude
+        lon_max: Maximum longitude
     Returns:
         pd.DataFrame: DataFrame containing tempanomaly (K) by lat, lon, time
     """

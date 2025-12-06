@@ -64,6 +64,7 @@ dependencies = [
     "fastapi[standard]",
     "mangum",
     "titiler",
+    "mlflow",
 ]
 
 [project.optional-dependencies]

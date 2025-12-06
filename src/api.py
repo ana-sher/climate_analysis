@@ -3,11 +3,14 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from titiler.core.factory import TilerFactory
+from src.api import climate_model
+from src.core.logging import setup_logging
 
 from mangum import Mangum
 
 from src.utils.location import get_location
 
+setup_logging()
 app = FastAPI(
     title="Climate Analysis API",
     openapi_url="/api",
@@ -26,6 +29,7 @@ app.add_middleware(
 cog = TilerFactory()
 
 app.include_router(cog.router, tags=["Cloud Optimized GeoTIFF"])
+app.include_router(climate_model.router, tags=["Climate Model API"])
 
 @app.get("/refresh-data")
 async def refresh_data(year_range: int = 4, loc_range: int = 5):
@@ -42,6 +46,6 @@ async def refresh_data(year_range: int = 4, loc_range: int = 5):
     return {lat_min: lat_min, lat_max: lat_max, lon_min: lon_min, lon_max: lon_max}
 
 
-handler = Mangum(
-    app
-)
+# handler = Mangum(
+#     app
+# )

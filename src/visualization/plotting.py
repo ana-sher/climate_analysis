@@ -1,17 +1,15 @@
 
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from typing import Optional, cast
+from typing import cast
 from sklearn.cluster import KMeans
 import pandas as pd
-import numpy as np
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.mpl.geoaxes as geoaxes
-from cartopy.feature.nightshade import Nightshade
 import matplotlib.colors as mcolors
 
-from src.config import PLOTS_DIR
+from core.config import PLOTS_DIR
 
 
 def _save_plot(fig: Figure, name: str):
