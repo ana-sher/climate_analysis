@@ -1,8 +1,9 @@
-FROM public.ecr.aws/lambda/python:3.11
+FROM python:3.11.9
 
-COPY requirements-lambda.txt .
-RUN pip install --prefer-binary -r requirements-lambda.txt
+WORKDIR /app
+COPY ./requirements.txt /app
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-COPY src /var/task/src
-ENV PYTHONPATH="/var/task/src"
-CMD ["api.handler"]
+COPY . /app
+ENV PYTHONPATH="/app/src"
+CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]

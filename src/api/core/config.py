@@ -1,7 +1,5 @@
 from pathlib import Path
-from typing import Self
 
-from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DATA_DIR = Path(__file__).resolve().parents[1] / 'data'

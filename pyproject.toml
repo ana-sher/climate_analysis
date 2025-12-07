@@ -65,6 +65,7 @@ dependencies = [
     "mangum",
     "titiler",
     "mlflow",
+    "slowapi"
 ]
 
 [project.optional-dependencies]

@@ -3,7 +3,7 @@ import zarr
 
 import pandas as pd
 import xarray as xr
-from core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
+from api.core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 def _write_csv(df: pd.DataFrame, filename: str, locally: bool = True, bucket: str = ""):
     path = DATA_DIR / "processed" / f"{filename}.csv" if locally else _get_s3_path(filename, "csv", bucket)

@@ -9,7 +9,7 @@ import cartopy.feature as cfeature
 import cartopy.mpl.geoaxes as geoaxes
 import matplotlib.colors as mcolors
 
-from core.config import PLOTS_DIR
+from api.core.config import PLOTS_DIR
 
 
 def _save_plot(fig: Figure, name: str):

@@ -117,6 +117,7 @@ locals {
 
 module "docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
+  docker_file_path = "Dockerfile_lambda"
 
   create_ecr_repo = true
   ecr_repo        = "climate-analysis"

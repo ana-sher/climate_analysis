@@ -4,9 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from titiler.core.factory import TilerFactory
 from src.api import climate_model
-from src.core.logging import setup_logging
-
-from mangum import Mangum
+from api.core.logging import setup_logging
 
 from src.utils.location import get_location
 
@@ -31,20 +29,19 @@ cog = TilerFactory()
 app.include_router(cog.router, tags=["Cloud Optimized GeoTIFF"])
 app.include_router(climate_model.router, tags=["Climate Model API"])
 
-@app.get("/refresh-data")
-async def refresh_data(year_range: int = 4, loc_range: int = 5):
-    utc_now = datetime.now(timezone.utc)
-    year_from = utc_now.year - year_range
+app.state.limiter = limiter
 
-    lon, lat = get_location()
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-    lat_min = lat - loc_range
-    lat_max = lat + loc_range
-    lon_min = lon - loc_range
-    lon_max = lon + loc_range
-    # test
-    return {lat_min: lat_min, lat_max: lat_max, lon_min: lon_min, lon_max: lon_max}
 
+@app.get("/")
+async def root():
+    return {"message": "Service is up and running."}
+
+
+@app.get("/health")
+async def health():
+    return Response(status_code=status.HTTP_200_OK)
 
 # handler = Mangum(
 #     app

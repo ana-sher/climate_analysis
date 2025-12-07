@@ -8,7 +8,7 @@ from typing import Literal, Optional
 import h5py
 import earthaccess
 
-from core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
+from api.core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
 def load_co2(raw: bool = True) -> xr.Dataset:

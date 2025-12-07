@@ -1,31 +1,22 @@
-from datetime import datetime
-
+from fastapi import Depends, Request
 from fastapi.routing import APIRouter
 
-from dtos import BoundingBox
-from model.predict import predict_for_region
-from model.train import load_latest_model
+from api.limiter import limiter
+from api.models.climate_model_dtos import PredictTemp
+from api.services.ml_service import MlService
 
-router = APIRouter()
-
-
-@router.get("/climate-model/info")
-async def get_climate_model_info():
-    return {
-        "model": "Climate Analysis Model",
-        "version": "1.0",
-        "description": "API endpoint for climate model information."
-    }
+router = APIRouter(prefix="/climate_model", tags=["climate_model"])
 
 
-@router.post("/climate-model/predict-temp", response_model=list[dict])
-async def predict_temp(date_from: str, date_to: str, bbox: BoundingBox):
-    model = load_latest_model()
-    lat_min = bbox.lower_left_lat if bbox.lower_left_lat < bbox.upper_right_lat else bbox.upper_right_lat
-    lat_max = bbox.upper_right_lat if bbox.upper_right_lat > bbox.lower_left_lat else bbox.lower_left_lat
-    lon_min = bbox.lower_left_lon if bbox.lower_left_lon < bbox.upper_right_lon else bbox.upper_right_lon
-    lon_max = bbox.upper_right_lon if bbox.upper_right_lon > bbox.lower_left_lon else bbox.lower_left_lon
+def get_ml_service() -> MlService:
+    return MlService()
 
-    prediction_df = predict_for_region(model, lat_min, lat_max, lon_min, lon_max, datetime.fromisoformat(date_from),
-                                       datetime.fromisoformat(date_to))
-    return prediction_df.to_dict(orient="records")
+
+@router.post("/predict-temp", response_model=list[dict])
+@limiter.limit("2/minute")
+async def predict_temp(request: Request, predict_request: PredictTemp,
+                       ml_service: MlService = Depends(get_ml_service)) -> list[dict]:
+    return ml_service.predict(
+        predict_request.date_from,
+        predict_request.date_to,
+        predict_request.bbox)
