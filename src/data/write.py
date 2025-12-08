@@ -36,7 +36,7 @@ def _get_s3_path(filename: str, data_format: Literal["csv", "parquet", "zarr"] =
     return s3_path
 
 
-def auto_chunk(ds: xr.Dataset, target_mb: int = 5) -> dict[str, int]:
+def auto_chunk(ds: xr.Dataset, target_mb: int = 50) -> dict[str, int]:
     target_bytes = target_mb * 1024 * 1024
     chunks = {}
 
