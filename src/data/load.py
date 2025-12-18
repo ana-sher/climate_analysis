@@ -1,12 +1,17 @@
 from datetime import datetime
 import math
+import json
+
+import fsspec
 import numpy as np
 import pandas as pd
 import xarray as xr
 from pathlib import Path
 from typing import Literal, Optional
 import h5py
+import hashlib
 import earthaccess
+from fsspec import AbstractFileSystem
 
 from api.core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
@@ -20,7 +25,7 @@ def load_tempanomalies() -> xr.Dataset:
 
 
 def read_raw_tempanomalies(
-    year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
+        year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
 ) -> pd.DataFrame:
     """
     Reads raw GISTEMP temperature anomalies data from local NetCDF files.
@@ -54,7 +59,7 @@ def read_raw_tempanomalies(
 
 
 def read_raw_co2(
-    year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
+        year_from: int, lat_min: float, lat_max: float, lon_min: float, lon_max: float
 ) -> pd.DataFrame:
     """
     Reads raw OCO-2 CO2 data from local HDF5 files.
@@ -102,14 +107,22 @@ def read_raw_co2(
     return co2_df
 
 
+def _dict_hash(dictionary: dict[str, any]) -> str:
+    """MD5 hash of a dictionary."""
+    dhash = hashlib.md5()
+    encoded = json.dumps(dictionary, sort_keys=True).encode()
+    dhash.update(encoded)
+    return dhash.hexdigest()
+
+
 def read_remote_co2(
-    year_from: int,
-    lat_min: float,
-    lat_max: float,
-    lon_min: float,
-    lon_max: float,
-    limit: int = 25,
-    locally: bool = True,
+        year_from: int,
+        lat_min: float,
+        lat_max: float,
+        lon_min: float,
+        lon_max: float,
+        limit: int = 25,
+        locally: bool = True,
 ) -> pd.DataFrame:
     """
     Reads remote OCO-2 CO2 data using Earthdata Access.
@@ -133,11 +146,15 @@ def read_remote_co2(
     path = DATA_DIR / "raw"
     year_now = datetime.now().year
     earthaccess.login()
+    search_kwargs = {
+        'temporal': (f"{year_from}-01-01", f"{year_now}-01-02"),
+        'bounding_box': (lon_min, lat_min, lon_max, lat_max)
+    }
     results = earthaccess.search_data(
         short_name="OCO2_L2_Lite_FP",
-        temporal=(f"{year_from}-01-01", f"{year_now}-01-02"),
-        bounding_box=(lon_min, lat_min, lon_max, lat_max),
+        **search_kwargs
     )
+
     step = int(math.ceil(len(results) / limit))
     if locally:
         files = earthaccess.download(results[::step], path)
@@ -146,12 +163,48 @@ def read_remote_co2(
         ]
         combined = xr.concat(datasets, dim="sounding_id", join="outer")
     else:
-        # TODO: implement S3 download because earthaccess does not support saving reference files to S3 yet + outer join (explore)
-        combined = earthaccess.open_virtual_mfdataset(
-            results[::step],
-            reference_dir=f"s3://{settings.S3_BUCKET}/kerchunk_refs/",
-            reference_format="parquet",
-            xr_combine_nested_kwargs={"concat_dim": "sounding_id", "join": "outer"},
+        # combined = earthaccess.open_virtual_mfdataset(
+        #     results[:1],
+        #     reference_dir=f"s3://{settings.S3_BUCKET}/kerchunk_refs/",
+        #     reference_format="json",
+        #     coords="all",
+        #     compat="override",
+        #     combine_attrs="drop_conflicts",
+        #     concat_dim="sounding_id",
+        #     join="outer",
+        # )
+
+        outfile = f"s3://{settings.S3_BUCKET}/kerchunk_refs/co2/{_dict_hash(search_kwargs)}.json"
+
+        fs: AbstractFileSystem = fsspec.filesystem("s3")
+        file_exist = fs.exists(outfile)
+
+        kerchunk_refs_out = {}
+
+        if not file_exist:
+            kerchunk_refs_out = earthaccess.consolidate_metadata(results[:1], access="indirect",
+                                                                 kerchunk_options={"concat_dims": ["sounding_id"],
+                                                                                   })
+            with fs.open(outfile, "w") as f:
+                json.dump(kerchunk_refs_out, f)
+        else:
+            with fs.open(outfile, "r") as f:
+                kerchunk_refs_out = json.load(f)
+        session_auth = earthaccess.auth.Auth.get_session(bearer_token=True)
+        client_kwargs = session_auth.headers
+        session = fsspec.filesystem("https", client_kwargs=client_kwargs)
+
+        combined = xr.open_dataset(
+            "reference://",
+            engine="zarr",
+            backend_kwargs={
+                "storage_options": {
+                    "fo": kerchunk_refs_out,
+                    "remote_protocol": "https",
+                    "remote_options": session.storage_options,
+                },
+                "consolidated": False
+            }
         )
 
     xco2_ds = combined.where(combined["xco2_quality_flag"] == 0, drop=True)
@@ -190,7 +243,7 @@ def load_xr(filename: str, engine: Optional[str] = None, raw: bool = True) -> xr
 
 
 def _get_raw_filenames_dataset(
-    file_format: Literal["h5", "nc", "nc4", "zarr"], concat_dim: str = "time", prefix: str = ""
+        file_format: Literal["h5", "nc", "nc4", "zarr"], concat_dim: str = "time", prefix: str = ""
 ) -> xr.Dataset:
     path = DATA_DIR / "raw"
     if file_format == "h5":
@@ -224,9 +277,9 @@ def _get_oco_file_ds(path: Path) -> xr.Dataset:
     with h5py.File(path, "r") as f:
         keys = list(f.keys())
         if (
-            "RetrievalResults" not in keys
-            or "RetrievalGeometry" not in keys
-            or "RetrievalHeader" not in keys
+                "RetrievalResults" not in keys
+                or "RetrievalGeometry" not in keys
+                or "RetrievalHeader" not in keys
         ):
             raise ValueError(f"File {path} missing required groups for OCO-2 data")
 

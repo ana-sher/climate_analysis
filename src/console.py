@@ -1,8 +1,9 @@
 from typing import Optional
-from data.load import read_raw_tempanomalies, read_raw_co2
-from visualization.plotting import plot_analysis, plot_temp_stats
+
+from data.load import read_raw_tempanomalies, read_raw_co2, read_remote_co2
 from utils.location import get_location
 from datetime import datetime, timezone
+from api.core import settings
 import argparse
 
 def main(year_range: int = 1, lon: Optional[float] = None, lat: Optional[float] = None, loc_range: int = 10):
@@ -16,10 +17,12 @@ def main(year_range: int = 1, lon: Optional[float] = None, lat: Optional[float] 
     lat_max = lat + loc_range
     lon_min = lon - loc_range
     lon_max = lon + loc_range
-    temp_anomalies_df = read_raw_tempanomalies(year_from, lat_min, lat_max, lon_min, lon_max)
-    co2_df = read_raw_co2(year_from, lat_min, lat_max, lon_min, lon_max)
-
-    plot_temp_stats(temp_anomalies_df)
+    co2 = read_remote_co2(year_from, lat_min, lat_max, lon_min, lon_max, locally = False)
+    print(co2)
+    # temp_anomalies_df = read_raw_tempanomalies(year_from, lat_min, lat_max, lon_min, lon_max)
+    # co2_df = read_raw_co2(year_from, lat_min, lat_max, lon_min, lon_max)
+    #
+    # plot_temp_stats(temp_anomalies_df)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
