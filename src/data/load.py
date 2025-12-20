@@ -11,8 +11,9 @@ from typing import Literal, Optional
 import h5py
 import hashlib
 import earthaccess
+from earthaccess import DataGranule
 from fsspec import AbstractFileSystem
-
+from data.kerchunk_processing import create_kerchunk_ref
 from api.core.config import DATA_DIR, TEMPANOMALIES, CO2, settings
 
 
@@ -107,14 +108,6 @@ def read_raw_co2(
     return co2_df
 
 
-def _dict_hash(dictionary: dict[str, any]) -> str:
-    """MD5 hash of a dictionary."""
-    dhash = hashlib.md5()
-    encoded = json.dumps(dictionary, sort_keys=True).encode()
-    dhash.update(encoded)
-    return dhash.hexdigest()
-
-
 def read_remote_co2(
         year_from: int,
         lat_min: float,
@@ -145,7 +138,7 @@ def read_remote_co2(
     """
     path = DATA_DIR / "raw"
     year_now = datetime.now().year
-    earthaccess.login()
+    session_auth = earthaccess.login().get_session(bearer_token=True)
     search_kwargs = {
         'temporal': (f"{year_from}-01-01", f"{year_now}-01-02"),
         'bounding_box': (lon_min, lat_min, lon_max, lat_max)
@@ -156,6 +149,7 @@ def read_remote_co2(
     )
 
     step = int(math.ceil(len(results) / limit))
+
     if locally:
         files = earthaccess.download(results[::step], path)
         datasets = [
@@ -163,59 +157,20 @@ def read_remote_co2(
         ]
         combined = xr.concat(datasets, dim="sounding_id", join="outer")
     else:
-        # combined = earthaccess.open_virtual_mfdataset(
-        #     results[:1],
-        #     reference_dir=f"s3://{settings.S3_BUCKET}/kerchunk_refs/",
-        #     reference_format="json",
-        #     coords="all",
-        #     compat="override",
-        #     combine_attrs="drop_conflicts",
-        #     concat_dim="sounding_id",
-        #     join="outer",
-        # )
-
-        outfile = f"s3://{settings.S3_BUCKET}/kerchunk_refs/co2/{_dict_hash(search_kwargs)}.json"
-
-        fs: AbstractFileSystem = fsspec.filesystem("s3")
-        file_exist = fs.exists(outfile)
-
-        kerchunk_refs_out = {}
-
-        if not file_exist:
-            kerchunk_refs_out = earthaccess.consolidate_metadata(results[:1], access="indirect",
-                                                                 kerchunk_options={"concat_dims": ["sounding_id"],
-                                                                                   })
-            with fs.open(outfile, "w") as f:
-                json.dump(kerchunk_refs_out, f)
-        else:
-            with fs.open(outfile, "r") as f:
-                kerchunk_refs_out = json.load(f)
-        session_auth = earthaccess.auth.Auth.get_session(bearer_token=True)
-        client_kwargs = session_auth.headers
-        session = fsspec.filesystem("https", client_kwargs=client_kwargs)
+        kerchunk_refs_out = create_kerchunk_ref(search_kwargs, results, settings.S3_BUCKET, DATA_DIR)
+        session = fsspec.filesystem("https", client_kwargs=session_auth.headers)
 
         combined = xr.open_dataset(
-            "reference://",
-            engine="zarr",
-            backend_kwargs={
-                "storage_options": {
-                    "fo": kerchunk_refs_out,
-                    "remote_protocol": "https",
-                    "remote_options": session.storage_options,
-                },
-                "consolidated": False
-            }
+            kerchunk_refs_out,
+            engine="kerchunk",
+            storage_options={
+                "remote_protocol": "https",
+                "remote_options": {"headers": dict(session_auth.headers)},
+            },
         )
 
-    xco2_ds = combined.where(combined["xco2_quality_flag"] == 0, drop=True)
-    xco2_ds = xco2_ds.where(xco2_ds["time"].dt.year >= year_from, drop=True)
-    xco2_ds = xco2_ds.where(
-        (xco2_ds["latitude"] >= lat_min)
-        & (xco2_ds["latitude"] <= lat_max)
-        & (xco2_ds["longitude"] >= lon_min)
-        & (xco2_ds["longitude"] <= lon_max),
-        drop=True,
-    )
+    mask = (combined["xco2_quality_flag"] == 0).compute()
+    xco2_ds = combined.where(mask, drop=True)
 
     xco2_df = (
         xco2_ds[["xco2", "time", "latitude", "longitude"]].to_dataframe().reset_index()

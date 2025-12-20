@@ -107,7 +107,7 @@ module "aws_lambda_function" {
 
 data "archive_file" "docker_context" {
   type        = "zip"
-  source_dir  = "../src/"
+  source_dir  = "../src/data/"
   output_path = "${path.module}/context.zip"
 }
 

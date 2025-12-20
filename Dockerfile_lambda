@@ -1,8 +1,7 @@
-FROM public.ecr.aws/lambda/python:3.11
+FROM public.ecr.aws/lambda/python:3.12
 
-COPY requirements-lambda.txt .
+COPY requirements-lambda.txt ${LAMBDA_TASK_ROOT}
 RUN pip install --prefer-binary -r requirements-lambda.txt
 
-COPY src /var/task/src
-ENV PYTHONPATH="/var/task/src"
-CMD ["api.handler"]
+COPY src/data/kerchunk_processing.py ${LAMBDA_TASK_ROOT}
+CMD ["kerchunk_processing.lambda_handler"]
